@@ -1,28 +1,47 @@
-"use client"
+// src/app/components/Navbar.tsx
+'use client'
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { Menu, X, Sun, Moon, Sunset, MessageSquare, User, LogIn } from "lucide-react"
-import UserDetails from "../components/UserDetails"
+import UserDetails from "./UserDetails"
 
-const Navbar = () => {
+interface NavbarProps {
+  aiMode: boolean;
+  setAiMode: (value: boolean) => void;
+}
+
+const Navbar = ({ aiMode, setAiMode }: NavbarProps) => {
   const { theme, setTheme } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
-  const [aiMode, setAiMode] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    const userDetails = UserDetails.getUserDetails()
-    setIsLoggedIn(!!userDetails)
+
+    const checkLoginStatus = () => {
+      const userDetails = UserDetails.getUserDetails()
+      setIsLoggedIn(!!userDetails)
+    }
+
+    // Initial check
+    checkLoginStatus()
+
+    // Set interval to check login status every second
+    const intervalId = setInterval(checkLoginStatus, 1000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId)
   }, [])
 
   const toggleNav = () => setIsOpen(!isOpen)
+  
+  // Now using the setAiMode prop instead of local state
   const toggleAiMode = () => setAiMode(!aiMode)
 
-  // Don't render theme controls until mounted to prevent hydration mismatch
+  // Early return for SSR
   if (!mounted) {
     return (
       <nav className="bg-background border-b">
@@ -92,11 +111,11 @@ const Navbar = () => {
               </button>
             </div>
 
-            {/* AI Mode Toggle */}
+            {/* AI Mode Toggle - Now using the prop */}
             <button
               onClick={toggleAiMode}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                aiMode ? 'bg-primary text-primary-foreground' : ''
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors duration-200 ${
+                aiMode ? 'bg-primary text-primary-foreground' : 'hover:bg-primary/10'
               }`}
             >
               <MessageSquare className="w-5 h-5" />
@@ -134,57 +153,29 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile menu, show/hide based on menu state */}
         {isOpen && (
           <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            <div className="px-2 pt-2 pb-3 space-y-1">
               <Link
                 href="/"
-                className="text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium"
-                onClick={toggleNav}
+                className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary"
               >
                 Home
               </Link>
               <Link
                 href="/about"
-                className="text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium"
-                onClick={toggleNav}
+                className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary"
               >
                 About
               </Link>
               <Link
                 href="/collection"
-                className="text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium"
-                onClick={toggleNav}
+                className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary"
               >
                 Collection
               </Link>
-
-              {/* Account/Login Link */}
-              {isLoggedIn ? (
-                <Link
-                  href="/account"
-                  className="text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium"
-                  onClick={toggleNav}
-                >
-                  <div className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    <span>Account</span>
-                  </div>
-                </Link>
-              ) : (
-                <Link
-                  href="/auth"
-                  className="text-foreground hover:text-primary block px-3 py-2 rounded-md text-base font-medium"
-                  onClick={toggleNav}
-                >
-                  <div className="flex items-center gap-2">
-                    <LogIn className="w-5 h-5" />
-                    <span>Login / Create Account</span>
-                  </div>
-                </Link>
-              )}
-
+              
               {/* Mobile Theme Switcher */}
               <div className="flex items-center gap-2 px-3 py-2">
                 <button
@@ -209,17 +200,37 @@ const Navbar = () => {
 
               {/* Mobile AI Mode Toggle */}
               <button
-                onClick={() => {
-                  toggleAiMode();
-                  toggleNav();
-                }}
+                onClick={toggleAiMode}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg w-full ${
-                  aiMode ? 'bg-primary text-primary-foreground' : ''
+                  aiMode ? 'bg-primary text-primary-foreground' : 'hover:bg-primary/10'
                 }`}
               >
                 <MessageSquare className="w-5 h-5" />
                 <span>AI Mode</span>
               </button>
+
+              {/* Mobile Account/Login Button */}
+              {isLoggedIn ? (
+                <Link
+                  href="/account"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary"
+                >
+                  <div className="flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    <span>Account</span>
+                  </div>
+                </Link>
+              ) : (
+                <Link
+                  href="/auth"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary"
+                >
+                  <div className="flex items-center gap-2">
+                    <LogIn className="w-5 h-5" />
+                    <span>Login / Create Account</span>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         )}

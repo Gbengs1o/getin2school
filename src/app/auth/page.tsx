@@ -8,6 +8,7 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  User,
 } from "firebase/auth";
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
@@ -19,6 +20,26 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
 
+interface UserProfile {
+  name?: string;
+  nickname?: string;
+  age?: string;
+  dob?: string;
+  sex?: string;
+  role?: string;
+}
+
+interface UserDetailsType {
+  uid: string;
+  email: string;
+  name: string;
+  nickname: string;
+  age: string;
+  dob: string;
+  sex: string;
+  role: string;
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
@@ -27,15 +48,13 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-
-  // Function to get user profile data
-  const getUserProfileData = async (uid) => {
+  const getUserProfileData = async (uid: string): Promise<UserProfile | null> => {
     try {
       const userDocRef = doc(db, "users", uid);
       const userDocSnap = await getDoc(userDocRef);
       
       if (userDocSnap.exists()) {
-        return userDocSnap.data();
+        return userDocSnap.data() as UserProfile;
       }
       return null;
     } catch (error) {
@@ -44,13 +63,16 @@ export default function AuthPage() {
     }
   };
 
-  const sendEmailNotification = async (emailType, userEmail, authMethod, user) => {
+  const sendEmailNotification = async (
+    emailType: "login" | "signup",
+    userEmail: string,
+    authMethod: "email/password" | "google",
+    user: User
+  ) => {
     try {
-      // Get complete user profile data
       const profileData = await getUserProfileData(user.uid);
       
-      // Combine Firebase auth data with profile data
-      const userDetails = {
+      const userDetails: UserDetailsType = {
         uid: user.uid,
         email: userEmail,
         name: profileData?.name || user.displayName || 'N/A',
@@ -61,10 +83,9 @@ export default function AuthPage() {
         role: profileData?.role || 'N/A'
       };
       
-      // Set the complete user details in our UserDetails singleton
       UserDetails.setUserDetails(userDetails);
 
-      const response = await fetch("/api/email-notification", {
+      await fetch("/api/email-notification", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -76,17 +97,8 @@ export default function AuthPage() {
           userDetails
         }),
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send email notification');
-      }
-  
-      const data = await response.json();
-      return data;
     } catch (error) {
       console.error("Failed to send email notification:", error);
-      throw error;
     }
   };
 
@@ -102,16 +114,18 @@ export default function AuthPage() {
       if (isLogin) {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         alert("Login successful!");
-        await sendEmailNotification("login", email, "email/password", userCredential.user);
+        sendEmailNotification("login", email, "email/password", userCredential.user)
+          .catch(err => console.error("Email notification failed:", err));
         router.push("/account");
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         alert("Sign-up successful! Welcome!");
-        await sendEmailNotification("signup", email, "email/password", userCredential.user);
+        sendEmailNotification("signup", email, "email/password", userCredential.user)
+          .catch(err => console.error("Email notification failed:", err));
         router.push("/congrats");
       }
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -122,20 +136,22 @@ export default function AuthPage() {
     setError("");
     try {
       const result = await signInWithPopup(auth, provider);
-      const isNewUser = result?.additionalUserInfo?.isNewUser;
-      const userEmail = result.user.email;
+      const isNewUser = result.additionalUserInfo?.isNewUser;
+      const userEmail = result.user.email || '';
       
       if (isNewUser) {
         alert("Google Sign-Up successful! Welcome!");
-        await sendEmailNotification("signup", userEmail, "google", result.user);
+        sendEmailNotification("signup", userEmail, "google", result.user)
+          .catch(err => console.error("Email notification failed:", err));
         router.push("/congrats");
       } else {
         alert("Welcome back!");
-        await sendEmailNotification("login", userEmail, "google", result.user);
+        sendEmailNotification("login", userEmail, "google", result.user)
+          .catch(err => console.error("Email notification failed:", err));
         router.push("/account");
       }
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

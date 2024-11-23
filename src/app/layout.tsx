@@ -1,7 +1,7 @@
 // src/app/layout.tsx
 import { ThemeProvider } from "./components/theme-provider"
 import { AutoTheme } from "./components/AutoTheme"
-import Navbar from "./components/Navbar"
+import ClientWrapper from "./components/ClientWrapper"
 import Footer from "./components/Footer"
 import "./globals.css"
 
@@ -22,13 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           themes={['light', 'dark', 'afternoon']}
         >
           <AutoTheme />
-          <div className="min-h-screen flex flex-col">
-            <Navbar />
-            <main className="flex-grow container mx-auto px-4 py-8">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          <ClientWrapper>
+            {children}
+          </ClientWrapper>
+          <Footer />
         </ThemeProvider>
       </body>
     </html>
