@@ -1,11 +1,14 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+//final chatfrontend with some vercel errors;
+
+
+import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Send, X, Play, Pause } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   audio?: string;
-  timestamp: number; // Made timestamp required
+  timestamp?: number; // Added timestamp for message ordering
 }
 
 interface ChatButtonProps {
@@ -22,25 +25,20 @@ const AudioMessage = ({ audioData }: { audioData: string }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleMetadata = () => setDuration(audio.duration || 0);
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime || 0);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    audio.addEventListener('loadedmetadata', handleMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('loadedmetadata', handleMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-    };
+    if (audioRef.current) {
+      audioRef.current.addEventListener('loadedmetadata', () => {
+        setDuration(audioRef.current?.duration || 0);
+      });
+      audioRef.current.addEventListener('timeupdate', () => {
+        setCurrentTime(audioRef.current?.currentTime || 0);
+      });
+      audioRef.current.addEventListener('ended', () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+      });
+      audioRef.current.play().catch(e => console.error('Auto-play failed:', e));
+      setIsPlaying(true);
+    }
   }, []);
 
   const togglePlay = () => {
@@ -71,7 +69,7 @@ const AudioMessage = ({ audioData }: { audioData: string }) => {
       </button>
       <div className="flex-1">
         <div className="bg-blue-200 h-1 rounded-full w-full">
-          <div
+          <div 
             className="bg-blue-500 h-1 rounded-full"
             style={{ width: `${(currentTime / duration) * 100}%` }}
           />
@@ -85,9 +83,16 @@ const AudioMessage = ({ audioData }: { audioData: string }) => {
 };
 
 const ChatButton = ({ show }: ChatButtonProps) => {
+  // Initialize state from localStorage if available
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [opacity, setOpacity] = useState(1);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const savedMessages = localStorage.getItem(STORAGE_KEY);
+    return savedMessages ? JSON.parse(savedMessages) : [];
+  });
+  const [opacity, setOpacity] = useState(() => {
+    const savedOpacity = localStorage.getItem(OPACITY_KEY);
+    return savedOpacity ? parseFloat(savedOpacity) : 1;
+  });
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -97,58 +102,56 @@ const ChatButton = ({ show }: ChatButtonProps) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Load messages and opacity from localStorage
+  // Save messages to localStorage whenever they change
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
 
-    const savedMessages = localStorage.getItem(STORAGE_KEY);
-    const savedOpacity = localStorage.getItem(OPACITY_KEY);
-
-    if (savedMessages) setMessages(JSON.parse(savedMessages));
-    if (savedOpacity) setOpacity(parseFloat(savedOpacity));
-  }, []);
-
-  // Save messages and opacity to localStorage
+  // Save opacity setting to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-      localStorage.setItem(OPACITY_KEY, opacity.toString());
-    }
-  }, [messages, opacity]);
+    localStorage.setItem(OPACITY_KEY, opacity.toString());
+  }, [opacity]);
 
-  // Auto-scroll to the latest message
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Clean up streams when unmounting
   useEffect(() => {
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
 
-  const handleVoiceInteraction = useCallback(async () => {
+  const handleVoiceInteraction = async () => {
     if (isRecording) {
       stopRecording();
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 44100,
+          channelCount: 1
+        } 
+      });
+      
       streamRef.current = stream;
-
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+        ? 'audio/webm' 
         : 'audio/mp4';
 
-      mediaRecorder.current = new MediaRecorder(stream, { mimeType });
-      chunksRef.current = [];
+      mediaRecorder.current = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128000
+      });
 
+      chunksRef.current = [];
+      
       mediaRecorder.current.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
@@ -158,141 +161,234 @@ const ChatButton = ({ show }: ChatButtonProps) => {
       mediaRecorder.current.onstop = async () => {
         setIsLoading(true);
         const audioBlob = new Blob(chunksRef.current, { type: mimeType });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, `recording.${mimeType.split('/')[1]}`);
 
-        // Simulate API request
-        setTimeout(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: 'user',
-              content: 'Voice message sent.',
-              timestamp: Date.now(),
-            },
-          ]);
-          setIsLoading(false);
-        }, 2000);
+        try {
+          const response = await fetch('/api/aimode', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) throw new Error('Server error');
+
+          const data = await response.json();
+          
+          if (data.transcription) {
+            const newMessages = [
+              { role: 'user', content: data.transcription, timestamp: Date.now() },
+              { role: 'assistant', content: data.message, audio: data.audio, timestamp: Date.now() + 1 }
+            ];
+            setMessages(prev => [...prev, ...newMessages]);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: 'Sorry, there was an error processing your voice message.',
+            timestamp: Date.now()
+          }]);
+        }
+        setIsLoading(false);
       };
 
       mediaRecorder.current.start();
       setIsRecording(true);
     } catch (error) {
-      console.error('Error accessing microphone:', error);
+      console.error('Microphone error:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Unable to access microphone. Please check your permissions.',
+        timestamp: Date.now()
+      }]);
     }
-  }, [isRecording]);
+  };
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorder.current) {
+  const stopRecording = () => {
+    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
       mediaRecorder.current.stop();
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
+      setIsRecording(false);
     }
-    setIsRecording(false);
-  }, []);
+  };
 
   const handleTextSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim() || isLoading) return;
 
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: inputMessage, timestamp: Date.now() },
-    ]);
+    const messageText = inputMessage;
     setInputMessage('');
+    const userMessage = { 
+      role: 'user' as const, 
+      content: messageText, 
+      timestamp: Date.now() 
+    };
+    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Simulate an API response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'This is a response from the assistant.',
-          timestamp: Date.now(),
-        },
-      ]);
+    try {
+      const response = await fetch('/api/aimode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: messageText }),
+      });
+
+      if (!response.ok) throw new Error('Server error');
+
+      const data = await response.json();
+      const assistantMessage = { 
+        role: 'assistant' as const, 
+        content: data.message, 
+        audio: data.audio,
+        timestamp: Date.now() 
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Sorry, there was an error processing your message.',
+        timestamp: Date.now()
+      }]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
+  };
+
+  // Add clear history function
+  const clearHistory = () => {
+    if (window.confirm('Are you sure you want to clear chat history?')) {
+      setMessages([]);
+      localStorage.removeItem(STORAGE_KEY);
+    }
   };
 
   if (!show) return null;
 
-
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center">
       {isChatOpen && (
-        <div
-          className="flex flex-col shadow-lg bg-white dark:bg-gray-800 rounded-lg w-80"
+        <div 
+          className="fixed bottom-24 w-96 h-[32rem] bg-white rounded-lg shadow-xl flex flex-col"
           style={{ opacity }}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
-            <h2 className="font-bold text-gray-800 dark:text-gray-200">Chat</h2>
-            <button
-              onClick={() => setIsChatOpen(false)}
-              className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-            >
-              <X className="w-5 h-5 text-gray-800 dark:text-gray-200" />
-            </button>
+          <div className="p-4 border-b flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <h3 className="font-semibold">Chat with AI Assistant</h3>
+              <button
+                onClick={clearHistory}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                Clear History
+              </button>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Opacity</span>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="1"
+                  step="0.1"
+                  value={opacity}
+                  onChange={(e) => setOpacity(parseFloat(e.target.value))}
+                  className="w-24"
+                />
+              </div>
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          <div
-            className="flex-1 overflow-y-auto p-4 space-y-2"
-            ref={chatContainerRef}
-          >
+
+          <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`px-4 py-2 rounded-lg ${message.role === 'user'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-200'
-                    }`}
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-900'
+                  }`}
                 >
-                  {message.content}
+                  <div className="mb-2">{message.content}</div>
                   {message.audio && <AudioMessage audioData={message.audio} />}
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 p-3 rounded-lg">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <form
-            onSubmit={handleTextSubmit}
-            className="flex items-center border-t dark:border-gray-700 p-2"
-          >
+
+          <div className="p-4 border-t flex gap-2">
+            <form onSubmit={handleTextSubmit} className="flex-1 flex gap-2">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!inputMessage.trim() || isLoading}
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </form>
             <button
-              type="button"
               onClick={handleVoiceInteraction}
-              className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600"
+              className={`p-2 rounded-lg ${
+                isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+              } text-white`}
+              disabled={isLoading}
             >
-              {isRecording ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Mic className="w-5 h-5" />
-              )}
+              <Mic className="w-5 h-5" />
             </button>
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="ml-2 p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </form>
+          </div>
         </div>
       )}
+
       <button
-        onClick={() => setIsChatOpen(!isChatOpen)}
-        className="p-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+        onClick={() => setIsChatOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200 shadow-lg"
       >
-        {isChatOpen ? <X className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="w-5 h-5"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M7.5 3.75h9a3 3 0 013 3v10.5a3 3 0 01-3 3h-9a3 3 0 01-3-3V6.75a3 3 0 013-3z"
+          />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6M9 12h6" />
+        </svg>
+        <span>Open Chat</span>
       </button>
     </div>
   );
