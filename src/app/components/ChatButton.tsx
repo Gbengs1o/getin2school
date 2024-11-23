@@ -12,6 +12,9 @@ interface ChatButtonProps {
   show: boolean;
 }
 
+const STORAGE_KEY = 'chat_messages'; // Key for localStorage
+const OPACITY_KEY = 'chat_opacity'; // Key for opacity setting
+
 const AudioMessage = ({ audioData }: { audioData: string }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -93,6 +96,25 @@ const ChatButton = ({ show }: ChatButtonProps) => {
   const chunksRef = useRef<Blob[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Load messages and opacity from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const savedMessages = localStorage.getItem(STORAGE_KEY);
+    const savedOpacity = localStorage.getItem(OPACITY_KEY);
+
+    if (savedMessages) setMessages(JSON.parse(savedMessages));
+    if (savedOpacity) setOpacity(parseFloat(savedOpacity));
+  }, []);
+
+  // Save messages and opacity to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      localStorage.setItem(OPACITY_KEY, opacity.toString());
+    }
+  }, [messages, opacity]);
 
   // Auto-scroll to the latest message
   useEffect(() => {
@@ -196,6 +218,7 @@ const ChatButton = ({ show }: ChatButtonProps) => {
 
   if (!show) return null;
 
+
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center">
       {isChatOpen && (
@@ -219,16 +242,14 @@ const ChatButton = ({ show }: ChatButtonProps) => {
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
+                  }`}
               >
                 <div
-                  className={`px-4 py-2 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-200'
-                  }`}
+                  className={`px-4 py-2 rounded-lg ${message.role === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-200'
+                    }`}
                 >
                   {message.content}
                   {message.audio && <AudioMessage audioData={message.audio} />}
@@ -268,10 +289,10 @@ const ChatButton = ({ show }: ChatButtonProps) => {
         </div>
       )}
       <button
-        onClick={() => setIsChatOpen((prev) => !prev)}
-        className="p-3 rounded-full bg-blue-500 text-white hover:bg-blue-600"
+        onClick={() => setIsChatOpen(!isChatOpen)}
+        className="p-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
       >
-        Chat
+        {isChatOpen ? <X className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
       </button>
     </div>
   );
