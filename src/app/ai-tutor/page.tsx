@@ -483,12 +483,7 @@ export default function AITutorPage() {
             <span className="text-sm">
               {userDetails?.name || userDetails?.email}
             </span>
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-sm transition-colors"
-            >
-              Logout
-            </button>
+           
           </div>
         </div>
 

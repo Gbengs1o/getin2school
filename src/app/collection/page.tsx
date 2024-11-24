@@ -1,4 +1,5 @@
-// src/app/collection/page.tsx
+"use client"
+
 import {
   Bot,
   Smartphone,
@@ -11,10 +12,16 @@ import {
   Download
 } from "lucide-react"
 import Link from 'next/link'
+import { useState } from 'react'
 
 export default function Collection() {
+  const handleExploreClick = () => {
+    alert("This feature is coming soon! Stay tuned for updates.")
+  }
+
   return (
     <div className="space-y-16 animate-fadeIn">
+      {/* Rest of the code remains exactly the same */}
       {/* Hero Section */}
       <section className="text-center space-y-6 py-12">
         <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-purple-600 text-transparent bg-clip-text">
@@ -97,82 +104,81 @@ export default function Collection() {
     </section>
 
     {/* App Store Section */}
-<section className="py-12">
-  <div className="container px-4">
-    <h2 className="text-3xl font-bold text-center mb-12">Educational Apps</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      
-      {/* Learning App */}
-      <div className="bg-background rounded-lg shadow-lg p-4 hover:scale-105 transition-transform">
-        <div className="relative aspect-square mb-4 bg-primary/10 rounded-lg flex items-center justify-center">
-          <Book className="h-12 w-12 text-primary" />
-        </div>
-        <h3 className="font-semibold mb-2">Interactive Learning</h3>
-        <p className="text-sm text-muted-foreground mb-2">Creation in progress</p>
-        <div className="flex items-center gap-1 mb-2">
-          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-          <span className="text-sm text-muted-foreground">4.8</span>
-        </div>
-        <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-          <Download className="h-4 w-4" />
-          Download
-        </button>
-      </div>
+    <section className="py-12">
+      <div className="container px-4">
+        <h2 className="text-3xl font-bold text-center mb-12">Educational Apps</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          
+          {/* Learning App */}
+          <div className="bg-background rounded-lg shadow-lg p-4 hover:scale-105 transition-transform">
+            <div className="relative aspect-square mb-4 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Book className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="font-semibold mb-2">Interactive Learning</h3>
+            <p className="text-sm text-muted-foreground mb-2">Creation in progress</p>
+            <div className="flex items-center gap-1 mb-2">
+              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+              <span className="text-sm text-muted-foreground">4.8</span>
+            </div>
+            <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+              <Download className="h-4 w-4" />
+              Download
+            </button>
+          </div>
 
-      {/* Quiz App */}
-      <div className="bg-background rounded-lg shadow-lg p-4 hover:scale-105 transition-transform">
-        <div className="relative aspect-square mb-4 bg-primary/10 rounded-lg flex items-center justify-center">
-          <Gamepad className="h-12 w-12 text-primary" />
-        </div>
-        <h3 className="font-semibold mb-2">Educational Quiz Games</h3>
-        <p className="text-sm text-muted-foreground mb-2">In beta testing phase</p>
-        <div className="flex items-center gap-1 mb-2">
-          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-          <span className="text-sm text-muted-foreground">4.7</span>
-        </div>
-        <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-          <Download className="h-4 w-4" />
-          Download
-        </button>
-      </div>
+          {/* Quiz App */}
+          <div className="bg-background rounded-lg shadow-lg p-4 hover:scale-105 transition-transform">
+            <div className="relative aspect-square mb-4 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Gamepad className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="font-semibold mb-2">Educational Quiz Games</h3>
+            <p className="text-sm text-muted-foreground mb-2">In beta testing phase</p>
+            <div className="flex items-center gap-1 mb-2">
+              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+              <span className="text-sm text-muted-foreground">4.7</span>
+            </div>
+            <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+              <Download className="h-4 w-4" />
+              Download
+            </button>
+          </div>
 
-      {/* Study Tools */}
-      <div className="bg-background rounded-lg shadow-lg p-4 hover:scale-105 transition-transform">
-        <div className="relative aspect-square mb-4 bg-primary/10 rounded-lg flex items-center justify-center">
-          <Code className="h-12 w-12 text-primary" />
-        </div>
-        <h3 className="font-semibold mb-2">Study Tools</h3>
-        <p className="text-sm text-muted-foreground mb-2">Will be available for public use soon</p>
-        <div className="flex items-center gap-1 mb-2">
-          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-          <span className="text-sm text-muted-foreground">4.9</span>
-        </div>
-        <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-          <Download className="h-4 w-4" />
-          Download
-        </button>
-      </div>
+          {/* Study Tools */}
+          <div className="bg-background rounded-lg shadow-lg p-4 hover:scale-105 transition-transform">
+            <div className="relative aspect-square mb-4 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Code className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="font-semibold mb-2">Study Tools</h3>
+            <p className="text-sm text-muted-foreground mb-2">Will be available for public use soon</p>
+            <div className="flex items-center gap-1 mb-2">
+              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+              <span className="text-sm text-muted-foreground">4.9</span>
+            </div>
+            <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+              <Download className="h-4 w-4" />
+              Download
+            </button>
+          </div>
 
-      {/* Mobile Companion */}
-      <div className="bg-background rounded-lg shadow-lg p-4 hover:scale-105 transition-transform">
-        <div className="relative aspect-square mb-4 bg-primary/10 rounded-lg flex items-center justify-center">
-          <Smartphone className="h-12 w-12 text-primary" />
+          {/* Mobile Companion */}
+          <div className="bg-background rounded-lg shadow-lg p-4 hover:scale-105 transition-transform">
+            <div className="relative aspect-square mb-4 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Smartphone className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="font-semibold mb-2">Mobile Learning Companion</h3>
+            <p className="text-sm text-muted-foreground mb-2">Creation in progress</p>
+            <div className="flex items-center gap-1 mb-2">
+              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+              <span className="text-sm text-muted-foreground">4.6</span>
+            </div>
+            <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+              <Download className="h-4 w-4" />
+              Download
+            </button>
+          </div>
         </div>
-        <h3 className="font-semibold mb-2">Mobile Learning Companion</h3>
-        <p className="text-sm text-muted-foreground mb-2">Creation in progress</p>
-        <div className="flex items-center gap-1 mb-2">
-          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-          <span className="text-sm text-muted-foreground">4.6</span>
-        </div>
-        <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-          <Download className="h-4 w-4" />
-          Download
-        </button>
       </div>
-    </div>
-  </div>
-</section>
-
+    </section>
 
       {/* CTA Section */}
       <section className="py-12">
@@ -184,7 +190,9 @@ export default function Collection() {
             <p className="text-xl mb-8 opacity-90">
               Get started with our AI-powered educational tools today
             </p>
-            <button className="px-8 py-4 bg-background text-foreground rounded-lg hover:opacity-90 transition-opacity font-medium">
+            <button 
+              onClick={handleExploreClick}
+              className="px-8 py-4 bg-background text-foreground rounded-lg hover:opacity-90 transition-opacity font-medium">
               Explore All Features
             </button>
           </div>
