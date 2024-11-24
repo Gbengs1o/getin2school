@@ -1,4 +1,5 @@
 // src/app/layout.tsx
+import { SpeedInsights } from '@vercel/speed-insights/next'  // Add this import
 import { ThemeProvider } from "./components/theme-provider"
 import { AutoTheme } from "./components/AutoTheme"
 import ClientWrapper from "./components/ClientWrapper"
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </ClientWrapper>
           <Footer />
+          <SpeedInsights />  {/* Add this component */}
         </ThemeProvider>
       </body>
     </html>
